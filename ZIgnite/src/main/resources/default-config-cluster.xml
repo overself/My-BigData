@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- Alter configuration below as needed. -->
+    <bean id="grid.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
+
+        <!-- Set to true to enable distributed class loading, default is false. -->
+        <property name="peerClassLoadingEnabled" value="true"/>
+
+        <!-- Set your work directory. -->
+        <property name="workDirectory" value="/usr/local/ignite2.16.0/work"/>
+        <!-- Set your Instance name. -->
+        <property name="igniteInstanceName" value="ignite-cluster"/>
+
+        <!-- 服务端节点之间的基本网络操作超时 -->
+        <property name="failureDetectionTimeout" value="80000"/>
+        <!-- 客户端节点之间的基本网络操作超时 -->
+        <property name="clientFailureDetectionTimeout" value="100000"/>
+
+        <!-- Ignite认证-->
+        <property name="authenticationEnabled" value="false"/>
+
+        <!--再平衡线程池 默认一个节点只会有一个线程用于再平衡-->
+        <property name="rebalanceThreadPoolSize" value="4"/>
+
+        <!--指标导出器 节点级的配置(可以仅在某个节点上启用) -->
+        <!-- Ignite指标都具有相同的域:org.apache.[classloaderId] -->
+        <property name="metricExporterSpi">
+            <list>
+                <!--默认启用JMX导出器，但JMX默认是禁用的，可通过环境变量启用JMX-->
+                <bean class="org.apache.ignite.spi.metric.jmx.JmxMetricExporterSpi"/>
+                <!--在INFO级别以固定间隔（默认为1分钟）将指标输出到日志文件 -->
+                <bean class="org.apache.ignite.spi.metric.log.LogExporterSpi"/>
+            </list>
+        </property>
+
+        <property name="gridLogger">
+            <bean class="org.apache.ignite.logger.log4j2.Log4J2Logger">
+                <!-- log4j2 configuration file -->
+                <constructor-arg type="java.lang.String" value="config/ignite-log4j.xml"/>
+            </bean>
+        </property>
+        <!-- 配置了一个配置默认缓存 -->
+        <property name="cacheConfiguration">
+            <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                <!-- Set the cache name. -->
+                <property name="name" value="DefaultCache"/>
+                <!-- 缓存组：Group the cache belongs to. -->
+                <property name="groupName" value="DefaultGroup"/>
+                <!-- Enable statistics for the cache(默认情况下会禁用某些指标)-->
+                <property name="statisticsEnabled" value="true"/>
+                <!-- Enable statistics for the cache(默认: 禁用)-->
+                <property name="managementEnabled" value="true"/>
+
+                <!--配置近缓存: 为该缓存配置近缓存后，就在请求底层缓存数据的任何节点（包括服务端和胖客户端，不含瘦客户端）上创建近缓存 -->
+                <property name="nearConfiguration">
+                    <bean class="org.apache.ignite.configuration.NearCacheConfiguration">
+                        <property name="nearEvictionPolicyFactory">
+                            <bean class="org.apache.ignite.cache.eviction.lru.LruEvictionPolicyFactory">
+                                <property name="maxSize" value="100000"/>
+                            </bean>
+                        </property>
+                    </bean>
+                </property>
+
+                <!--  ATOMIC(默认): 所有操作都会原子化地执行，一次一个，不支持事务。ATOMIC模式提供了最好的性能，同时为每个单个操作提供了数据原子性和一致性-->
+                <!--  TRANSACTIONAL: 在键-值API层面开启了符合ACID的事务支持，但是SQL不支持事务-->
+                <property name="atomicityMode" value="ATOMIC"/>
+
+                <!-- Set the cache mode. -->
+                <!-- 分区模式(PARTITIONED)：默认模式，在所有服务端节点间平均分配分区,读取成本很高 -->
+                <!-- 副本模式(REPLICATED)：所有服务端节点间都需要分配和维护,更新成本很高 -->
+                <property name="cacheMode" value="PARTITIONED"/>
+                <!-- 配置备份数量:默认0 -->
+                <property name="backups" value="0"/>
+                <!--再平衡过程的执行方式:ASYNC(默认)，SYNC，NONE-->
+                <property name="rebalanceMode" value="SYNC"/>
+                <!--写同步模式: PRIMARY_SYNC(默认),FULL_ASYNC,FULL_SYNC-->
+                <property name="writeSynchronizationMode" value="PRIMARY_SYNC"/>
+                <!-- 分区丢失策略:IGNORE(默认),READ_WRITE_SAFE,READ_ONLY_SAFE-->
+                <property name="partitionLossPolicy" value="IGNORE"/>
+
+                <!-- 过期策略-配置 -->
+                <property name="expiryPolicyFactory">
+                    <bean class="javax.cache.expiry.CreatedExpiryPolicy" factory-method="factoryOf">
+                        <constructor-arg>
+                            <bean class="javax.cache.expiry.Duration">
+                                <constructor-arg value="MINUTES"/>
+                                <constructor-arg value="5"/>
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </property>
+                <!-- 过期策略- Eager TTL（热生存时间）：默认值是true -->
+                <property name="eagerTtl" value="true"/>
+
+                <!-- 开启堆内缓存:默认false，当分布式计算或部署的服务从缓存中获取数据进行进一步处理时 -->
+                <property name="onheapCacheEnabled" value="true"/>
+                <!-- 配置退出策略: 启用堆内缓存后，可以使用堆内缓存退出策略来管理不断增长的堆内缓存-->
+                <property name="evictionPolicy">
+                    <!-- LRU eviction policy. -->
+                    <!-- FIFO eviction policy. -->
+                    <!-- Sorted eviction policy. -->
+                    <bean class="org.apache.ignite.cache.eviction.lru.LruEvictionPolicy">
+                        <!-- Set the maximum cache size to 1 million (default is 100,000). -->
+                        <property name="maxSize" value="1000000"/>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+
+        <!-- 配置瘦客户端连接器：瘦客户端连接参数是由客户端连接器配置控制的-->
+        <property name="clientConnectorConfiguration">
+            <bean class="org.apache.ignite.configuration.ClientConnectorConfiguration">
+                <!-- Set a port range from 10800 to 10805-->
+                <property name="portRange" value="3"/>
+                <property name="port" value="10800"/>
+            </bean>
+        </property>
+
+        <!-- 集群节点自动相互发现-->
+        <property name="discoverySpi">
+            <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+                <!-- Initial local port to listen to. -->
+                <property name="localPort" value="47500"/>
+                <!-- Changing local port range. This is an optional action. -->
+                <property name="localPortRange" value="1"/>
+                <property name="ipFinder">
+                    <bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.multicast.TcpDiscoveryMulticastIpFinder">
+                        <!-- 组播IP探测-->
+                        <!-- 组播地址是一个D类IP地址（范围从224.0.0.0到239.255.255.255），这些地址是专门为组播通信保留的。-->
+                        <property name="multicastGroup" value="228.10.10.157"/>
+                        <property name="multicastPort" value="47400"/>
+                        <!-- 静态IP探测-->
+                        <property name="addresses">
+                            <list>
+                                <value>data-master01:47500</value>
+                                <value>data-worker01:47500</value>
+                                <value>data-worker02:47500</value>
+                            </list>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+        <!--使用ZooKeeper发现机制，需要确保两个系统的配置参数相互匹配不矛盾（tickTime、syncLimit）-->
+        <!-- sessionTimeout要比tickTime * syncLimit大-->
+        <!--<property name="discoverySpi">
+            <bean class="org.apache.ignite.spi.discovery.zk.ZookeeperDiscoverySpi">
+                <property name="zkConnectionString" value="data-master01:2181,data-worker01:2181,data-worker02:2181"/>
+                <property name="sessionTimeout" value="30000"/>
+                <property name="zkRootPath" value="/apacheIgnite"/>
+                <property name="joinTimeout" value="10000"/>
+            </bean>
+        </property>-->
+        <!-- 自定义节点之间通信SPI端口 -->
+        <property name="communicationSpi">
+            <bean class="org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi">
+                <property name="localPort" value="4321"/>
+            </bean>
+        </property>
+        <!-- 持久化存储 -->
+        <property name="dataStorageConfiguration">
+            <bean class="org.apache.ignite.configuration.DataStorageConfiguration">
+                <!-- wal 预写日志 该值必须介于512KB和2GB之间-->
+                <!-- 预写日志的目的是为单个节点或整个集群的故障提供一个恢复机制-->
+                <property name="walSegmentSize" value="#{128 * 1024 * 1024}"/>
+                <!-- 持久化存储的指标 默认关闭-->
+                <property name="metricsEnabled" value="true"/>
+                <!-- 开启页面写入限流 默认false-->
+                <property name="writeThrottlingEnabled" value="false"/>
+                <!-- 默认数据区启用持久化存储 -->
+                <property name="defaultDataRegionConfiguration">
+                    <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
+                        <!-- Enable metrics for this data region  -->
+                        <property name="metricsEnabled" value="true"/>
+                        <!-- 启用持久化存储 -->
+                        <property name="persistenceEnabled" value="true"/>
+                        <!-- 配置其他持久化属性，如最大内存大小、备份等 -->
+                    </bean>
+                </property>
+                <!-- 持久化存储路径 -->
+                <property name="storagePath" value="/usr/local/ignite2.16.0/storage"/>
+                <!-- WAL活动段存储路径 -->
+                <property name="walPath" value="/usr/local/ignite2.16.0/storage/wal/"/>
+            </bean>
+        </property>
+        <!-- 配置SQL的 Schema-->
+        <property name="sqlConfiguration">
+            <bean class="org.apache.ignite.configuration.SqlConfiguration">
+                <property name="sqlSchemas">
+                    <list>
+                        <value>MY_SCHEMA</value>
+                    </list>
+                </property>
+            </bean>
+        </property>
+
+    </bean>
+</beans>

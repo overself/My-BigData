@@ -1,0 +1,21 @@
+spring:
+  hadoop:
+    hadoopHomeDir: /usr/local/hadoop
+    hadoopUser: root
+    yarn:
+      hostName: data-master01
+    hdfs:
+      uri: hdfs://data-master01:9000
+      user: ${spring.hadoop.hadoopUser:root}
+  spark:
+    app-name-prefix: @artifactId@
+    master: spark://data-master01:9077 # local[*] #
+    driver:
+      host: 192.168.0.150
+      port: 9092
+    other:
+      'hadoop.home.dir': ${spring.hadoop.hadoopHomeDir:/usr/local/hadoop}
+      'spark.sql.crossJoin.enabled': true
+      'spark.executor.memory': 1G
+      'spark.dynamicAllocation.minExecutors': 3
+      'spark.ui.enabled': false

@@ -1,0 +1,23 @@
+package com.beam.project.demo.kafka;
+
+import org.apache.beam.sdk.options.Default;
+import org.apache.beam.sdk.options.Description;
+import org.apache.beam.sdk.options.PipelineOptions;
+
+public interface KafkaOptions extends PipelineOptions {
+
+    /**
+     * Playground's Kafka server
+     */
+    @Description("Kafka server host")
+    @Default.String("localhost:9092")
+    String getKafkaHost();
+
+    void setKafkaHost(String value);
+
+    @Description("Kafka server host")
+    @Default.String("BeamTest")
+    String getTopic();
+
+    void setTopic(String topic);
+}

@@ -1,0 +1,20 @@
+server:
+  port: 8090
+
+spring:
+  profiles:
+    active: local
+  application:
+    name: @artifactId@
+  config:
+    import:
+      - optional:classpath:/application.yml
+      - optional:classpath:/config/application-${spring.profiles.active}.yml
+
+# log配置
+logging:
+  file:
+    path: /tmp/logs  #${LOG_PATH} logging.pathが設定されている場合 如：./
+  level:
+    cn.codex: debug
+    root: info
