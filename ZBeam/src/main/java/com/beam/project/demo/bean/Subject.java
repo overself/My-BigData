@@ -4,13 +4,19 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum Subject {
+import java.io.Serializable;
 
-    mathematics("1001", "mathematics"),
+public enum Subject implements Serializable {
 
-    physics("1002", "physics"),
+    mathematics("maths", "maths"),
 
-    chemistry("1003", "chemistry");
+    physics("physics", "physics"),
+
+    chemistry("chemistry", "chemistry"),
+
+    English("English", "English"),
+
+    Chinese("Chinese", "Chinese");
 
     private String code;
 

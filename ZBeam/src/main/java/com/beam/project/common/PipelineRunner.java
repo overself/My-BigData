@@ -1,4 +1,4 @@
-package com.beam.project.demo.kafka;
+package com.beam.project.common;
 
 public interface PipelineRunner {
 

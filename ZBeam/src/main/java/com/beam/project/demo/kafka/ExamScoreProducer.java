@@ -1,7 +1,9 @@
 package com.beam.project.demo.kafka;
 
 import avro.shaded.com.google.common.collect.ImmutableMap;
+import com.beam.project.common.KafkaOptions;
 import com.beam.project.common.LogOutput;
+import com.beam.project.common.PipelineRunner;
 import com.beam.project.demo.bean.ExamScore;
 import com.beam.project.demo.bean.Subject;
 import com.beam.project.demo.kafka.transform.RandomScoreGeneratorFn;

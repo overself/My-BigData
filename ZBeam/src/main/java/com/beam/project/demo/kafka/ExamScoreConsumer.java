@@ -1,6 +1,7 @@
 package com.beam.project.demo.kafka;
 
 import avro.shaded.com.google.common.collect.ImmutableMap;
+import com.beam.project.common.KafkaOptions;
 import com.beam.project.common.LogOutput;
 import com.beam.project.demo.bean.ExamScore;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,9 +19,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 @Slf4j
 public class ExamScoreConsumer {
 
-    private KafkaOptions options;
-
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final KafkaOptions options;
 
     public ExamScoreConsumer(KafkaOptions options) {
         this.options = options;
@@ -46,7 +45,7 @@ public class ExamScoreConsumer {
     }
 
     private static class ConvertExamScoreDoFn extends DoFn<KafkaRecord<String, String>, ExamScore> {
-        @DoFn.ProcessElement
+        @ProcessElement
         public void processElement(ProcessContext context) {
             KafkaRecord<String, String> input = context.element();
             ObjectMapper objectMapper = new ObjectMapper();

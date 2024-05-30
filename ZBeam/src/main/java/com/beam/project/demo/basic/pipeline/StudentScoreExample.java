@@ -2,8 +2,9 @@ package com.beam.project.demo.basic.pipeline;
 
 import com.beam.project.common.LogOutput;
 import com.beam.project.common.SnowFlakeUtil;
+import com.beam.project.demo.bean.ExamScore;
+import com.beam.project.demo.bean.Subject;
 import com.google.api.client.util.Lists;
-import lombok.Data;
 import org.apache.beam.runners.flink.FlinkRunner;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.options.PipelineOptions;
@@ -16,7 +17,6 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.commons.lang3.RandomUtils;
 import org.joda.time.Duration;
 
-import java.io.Serializable;
 import java.util.List;
 
 public class StudentScoreExample {
@@ -43,7 +43,7 @@ public class StudentScoreExample {
         Pipeline pipeline = Pipeline.create(options);
 
         //List<StudentScore> scores = getRandomStudentScores();
-        List<StudentScore> scores = getFixedStudentScores();
+        List<ExamScore> scores = getFixedStudentScores();
 
         List<Long> timestamps = Lists.newArrayList();
         for (int stimes = 0; stimes < scores.size(); stimes++) {
@@ -51,84 +51,84 @@ public class StudentScoreExample {
         }
 
         // Create a PCollection from the input data with timestamps
-        PCollection<StudentScore> items = pipeline.apply(Create.timestamped(scores, timestamps));
+        PCollection<ExamScore> items = pipeline.apply(Create.timestamped(scores, timestamps));
 
         // Create a windowed PCollection
-        PCollection<StudentScore> windowedItems = items.apply(Window.into(FixedWindows.of(Duration.standardMinutes(3))));
+        PCollection<ExamScore> windowedItems = items.apply(Window.into(FixedWindows.of(Duration.standardMinutes(3))));
 
         //每个窗口收集到的数据个数
         windowedItems.apply(ParDo.of(new LogOutput<>("Windowed Items")));
         PCollection<Long> count = windowedItems.apply("CountElements",
-                Combine.globally(Count.<StudentScore>combineFn()).withoutDefaults());
+                Combine.globally(Count.<ExamScore>combineFn()).withoutDefaults());
         count.apply(ParDo.of(new LogOutput<>("Windowed Elements Count")));
         //对每个时间窗口的数据进行分组
-        PCollection<KV<String, Iterable<StudentScore>>> windowedCountsGroup = windowedItems.apply(
-                WithKeys.of(new SimpleFunction<StudentScore, String>() {
+        PCollection<KV<String, Iterable<ExamScore>>> windowedCountsGroup = windowedItems.apply(
+                WithKeys.of(new SimpleFunction<ExamScore, String>() {
                     @Override
-                    public String apply(StudentScore input) {
-                        return input.schoolCode + "," + input.classCode;
+                    public String apply(ExamScore input) {
+                        return input.getSchoolCode() + "," + input.getClassCode();
                     }
                 })).apply(GroupByKey.create());
         windowedCountsGroup.apply(ParDo.of(new LogOutput<>("StudentCountsGroup")));
 
         //去重处理
-        PCollection<StudentScore> distinctScores = windowedItems
-                .apply(Distinct.withRepresentativeValueFn(new SimpleFunction<StudentScore, String>() {
+        PCollection<ExamScore> distinctScores = windowedItems
+                .apply(Distinct.withRepresentativeValueFn(new SimpleFunction<ExamScore, String>() {
                     @Override
-                    public String apply(StudentScore input) {
-                        return input.schoolCode + "," + input.classCode + "," + input.studentCode + "," + input.subject;
+                    public String apply(ExamScore input) {
+                        return input.getSchoolCode() + "," + input.getClassCode() + "," + input.getStudentCode() + "," + input.getSubject();
                     }
                 }));
         PCollection<Long> distinctCount = distinctScores.apply("DistinctCount",
-                Combine.globally(Count.<StudentScore>combineFn()).withoutDefaults());
+                Combine.globally(Count.<ExamScore>combineFn()).withoutDefaults());
         distinctCount.apply(ParDo.of(new LogOutput<>("Distinct Elements Count")));
         //对每个时间窗口的数据进行分组
-        PCollection<KV<String, Iterable<StudentScore>>> windowedDistinctGroup = distinctScores.apply(
-                WithKeys.of(new SimpleFunction<StudentScore, String>() {
+        PCollection<KV<String, Iterable<ExamScore>>> windowedDistinctGroup = distinctScores.apply(
+                WithKeys.of(new SimpleFunction<ExamScore, String>() {
                     @Override
-                    public String apply(StudentScore input) {
-                        return input.schoolCode + "," + input.classCode;
+                    public String apply(ExamScore input) {
+                        return input.getSchoolCode() + "," + input.getClassCode();
                     }
                 })).apply(GroupByKey.create());
         windowedDistinctGroup.apply(ParDo.of(new LogOutput<>("DistinctScoresGroup")));
 
         //排除物理科目的统计,并给出分校区名称
-        PCollection<StudentScore> mainSubjectScores = distinctScores.apply(ParDo.of(new DoFn<StudentScore, StudentScore>() {
+        PCollection<ExamScore> mainSubjectScores = distinctScores.apply(ParDo.of(new DoFn<ExamScore, ExamScore>() {
             @ProcessElement
-            public void process(@Element StudentScore score, OutputReceiver<StudentScore> receiver) throws CloneNotSupportedException {
+            public void process(@Element ExamScore score, OutputReceiver<ExamScore> receiver) throws CloneNotSupportedException {
                 if ("physics".equals(score.getSubject())) {
                     return;
                 }
-                StudentScore scoreNew = score.clone();
+                ExamScore scoreNew = score.clone();
                 scoreNew.setSchoolName("实验中学" + score.getSchoolCode() + "分校区");
                 receiver.output(scoreNew);
             }
         }));
 
         //计算每个班级的单科平均分
-        PCollection<StudentScore> schoolClassSubjectAverage = mainSubjectScores.apply(new PTransform<PCollection<StudentScore>, PCollection<StudentScore>>() {
+        PCollection<ExamScore> schoolClassSubjectAverage = mainSubjectScores.apply(new PTransform<PCollection<ExamScore>, PCollection<ExamScore>>() {
             @Override
-            public PCollection<StudentScore> expand(PCollection<StudentScore> input) {
-                return input.apply(WithKeys.of(new SimpleFunction<StudentScore, String>() {
+            public PCollection<ExamScore> expand(PCollection<ExamScore> input) {
+                return input.apply(WithKeys.of(new SimpleFunction<ExamScore, String>() {
                             @Override
-                            public String apply(StudentScore input) {
-                                return input.schoolCode + "," + input.classCode + "," + input.subject;
+                            public String apply(ExamScore input) {
+                                return input.getSchoolCode() + "," + input.getClassCode() + "," + input.getSubject();
                             }
                         }))
                         .apply(GroupByKey.create())
-                        .apply(ParDo.of(new DoFn<KV<String, Iterable<StudentScore>>, StudentScore>() {
+                        .apply(ParDo.of(new DoFn<KV<String, Iterable<ExamScore>>, ExamScore>() {
                             @ProcessElement
-                            public void process(@Element KV<String, Iterable<StudentScore>> scoreKV, OutputReceiver<StudentScore> receiver) {
-                                Iterable<StudentScore> studentScores = scoreKV.getValue();
+                            public void process(@Element KV<String, Iterable<ExamScore>> scoreKV, OutputReceiver<ExamScore> receiver) {
+                                Iterable<ExamScore> studentScores = scoreKV.getValue();
                                 String[] keys = scoreKV.getKey().split(",");
-                                StudentScore score = new StudentScore();
+                                ExamScore score = new ExamScore();
                                 score.setDataId(SnowFlakeUtil.getSnowFlakeId());
                                 score.setSchoolCode(keys[0]);
                                 score.setClassCode(keys[1]);
-                                score.setSubject(keys[2]);
+                                score.setSubject(Subject.fromCode(keys[2]));
                                 score.setScore(0.00d);
                                 int count = 0;
-                                for (StudentScore studentScore : studentScores) {
+                                for (ExamScore studentScore : studentScores) {
                                     score.setSchoolName(studentScore.getSchoolName());
                                     score.setScore(score.getScore() + studentScore.getScore());
                                     count++;
@@ -145,27 +145,27 @@ public class StudentScoreExample {
         schoolClassSubjectAverage.apply(ParDo.of(new LogOutput<>("SchoolClassSubjectAverage")));
 
         //计算每个学校的单科平均分
-        PCollection<StudentScore> schoolSubjectAverage = schoolClassSubjectAverage.apply(new PTransform<PCollection<StudentScore>, PCollection<StudentScore>>() {
+        PCollection<ExamScore> schoolSubjectAverage = schoolClassSubjectAverage.apply(new PTransform<PCollection<ExamScore>, PCollection<ExamScore>>() {
             @Override
-            public PCollection<StudentScore> expand(PCollection<StudentScore> input) {
-                return input.apply(MapElements.via(new SimpleFunction<StudentScore, KV<String, StudentScore>>() {
+            public PCollection<ExamScore> expand(PCollection<ExamScore> input) {
+                return input.apply(MapElements.via(new SimpleFunction<ExamScore, KV<String, ExamScore>>() {
                     @Override
-                    public KV<String, StudentScore> apply(StudentScore input) {
+                    public KV<String, ExamScore> apply(ExamScore input) {
                         try {
-                            return KV.of(input.schoolCode + input.subject, input.clone());
+                            return KV.of(input.getSchoolCode() + input.getSubject(), input.clone());
                         } catch (CloneNotSupportedException e) {
                             throw new RuntimeException(e);
                         }
                     }
-                })).apply(Combine.perKey(new SimpleFunction<Iterable<StudentScore>, StudentScore>() {
+                })).apply(Combine.perKey(new SimpleFunction<Iterable<ExamScore>, ExamScore>() {
                     @Override
-                    public StudentScore apply(Iterable<StudentScore> input) {
-                        List<StudentScore> studentScores = Lists.newArrayList(input);
-                        StudentScore score = null;
+                    public ExamScore apply(Iterable<ExamScore> input) {
+                        List<ExamScore> studentScores = Lists.newArrayList(input);
+                        ExamScore score = null;
                         try {
                             score = studentScores.get(0).clone();
                             score.setScore(0.0d);
-                            for (StudentScore studentScore : studentScores) {
+                            for (ExamScore studentScore : studentScores) {
                                 score.setScore(score.getScore() + studentScore.getScore());
                             }
                         } catch (CloneNotSupportedException e) {
@@ -174,21 +174,21 @@ public class StudentScoreExample {
                         score.setScore(score.getScore() / studentScores.size());
                         return score;
                     }
-                })).apply(Values.<StudentScore>create());
+                })).apply(Values.<ExamScore>create());
             }
         });
         schoolSubjectAverage.apply(ParDo.of(new LogOutput<>("SchoolSubjectAverage")));
         pipeline.run();
     }
 
-    private static List<StudentScore> getRandomStudentScores() {
-        List<StudentScore> scores = Lists.newArrayList();
+    private static List<ExamScore> getRandomStudentScores() {
+        List<ExamScore> scores = Lists.newArrayList();
         for (long index = 0; index < 360; index++) {
-            StudentScore score = new StudentScore();
+            ExamScore score = new ExamScore();
             score.setDataId(index);
             score.setSchoolCode(SCHOOL_CODE[RandomUtils.nextInt(0, 2)]);
             score.setClassCode(CLASS_CODE[RandomUtils.nextInt(0, 5)]);
-            score.setSubject(SUBJECT_CODE[RandomUtils.nextInt(0, 3)]);
+            score.setSubject(Subject.fromCode(SUBJECT_CODE[RandomUtils.nextInt(0, 3)]));
             score.setStudentCode(STUDENT_CODE[RandomUtils.nextInt(0, 39)]);
             score.setScore(Double.valueOf(RandomUtils.nextInt(65, 100)));
             scores.add(score);
@@ -197,18 +197,18 @@ public class StudentScoreExample {
     }
 
 
-    private static List<StudentScore> getFixedStudentScores() {
-        List<StudentScore> scores = Lists.newArrayList();
+    private static List<ExamScore> getFixedStudentScores() {
+        List<ExamScore> scores = Lists.newArrayList();
         Long dataId = 1l;
         for (String school : SCHOOL_CODE) {
             for (String classes : CLASS_CODE_FIXED) {
                 for (String subject : SUBJECT_CODE) {
                     for (String student : STUDENT_CODE_FIXED) {
-                        StudentScore score = new StudentScore();
+                        ExamScore score = new ExamScore();
                         score.setDataId(dataId++);
                         score.setSchoolCode(school);
                         score.setClassCode(classes);
-                        score.setSubject(subject);
+                        score.setSubject(Subject.fromCode(subject));
                         score.setStudentCode(student);
                         //score.setScore(Double.valueOf(RandomUtils.nextInt(65, 100)));
                         score.setScore(Double.valueOf(80));
@@ -220,26 +220,4 @@ public class StudentScoreExample {
         return scores;
     }
 
-    @Data
-    public static class StudentScore implements Serializable, Cloneable {
-
-        private Long dataId;
-
-        private String studentCode;
-
-        private String schoolCode;
-
-        private String classCode;
-
-        private String subject;
-
-        private Double score;
-
-        private String schoolName;
-
-        @Override
-        protected StudentScore clone() throws CloneNotSupportedException {
-            return (StudentScore) super.clone();
-        }
-    }
 }

@@ -1,5 +1,6 @@
 package com.beam.project.demo.kafka;
 
+import com.beam.project.common.KafkaOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 
 import java.util.TimerTask;
