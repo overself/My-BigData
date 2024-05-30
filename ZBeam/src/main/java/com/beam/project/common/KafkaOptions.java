@@ -15,7 +15,7 @@ public interface KafkaOptions extends PipelineOptions {
 
     void setKafkaHost(String value);
 
-    @Description("Kafka server host")
+    @Description("Kafka Message Topic")
     @Default.String("BeamTest")
     String getTopic();
 

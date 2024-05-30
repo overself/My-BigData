@@ -2,7 +2,10 @@ package com.beam.project.demo.kafka;
 
 import com.beam.project.common.KafkaOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
 
+import java.util.Timer;
 import java.util.TimerTask;
 
 public class ExamScorePipeline {
@@ -13,14 +16,18 @@ public class ExamScorePipeline {
         /*
          * Kafka producer which sends messages (works in background thread)
          */
+        Duration windowSize = Duration.standardSeconds(30);
+        Instant nextWindowStart =new Instant(Instant.now().getMillis() + windowSize.getMillis()
+                                - Instant.now().plus(windowSize).getMillis() % windowSize.getMillis());
         ExamScoreProducer producer = new ExamScoreProducer(options);
+        Timer timer = new Timer();
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
-                producer.run();
+                producer.runPipeline();
             }
         };
-        task.run();
+        timer.schedule(task,nextWindowStart.toDate());
 
         /*
          * Kafka consumer which reads messages

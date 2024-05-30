@@ -2,5 +2,5 @@ package com.beam.project.common;
 
 public interface PipelineRunner {
 
-    void run();
+    void runPipeline();
 }

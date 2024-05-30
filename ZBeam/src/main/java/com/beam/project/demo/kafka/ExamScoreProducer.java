@@ -10,7 +10,6 @@ import com.beam.project.demo.kafka.transform.RandomScoreGeneratorFn;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.coders.SerializableCoder;
 import org.apache.beam.sdk.io.GenerateSequence;
 import org.apache.beam.sdk.io.kafka.KafkaIO;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -23,9 +22,9 @@ import org.joda.time.Instant;
 
 public class ExamScoreProducer implements PipelineRunner {
 
-    private static final int MESSAGES_COUNT = 100;
+    private static final int MESSAGES_COUNT = 4;
 
-    private static final int WINDOW_TIME = 30;
+    private static final int WINDOW_TIME = 5;
 
 
     private KafkaOptions options;
@@ -35,7 +34,7 @@ public class ExamScoreProducer implements PipelineRunner {
     }
 
     @Override
-    public void run() {
+    public void runPipeline() {
 
         Pipeline pipeline = Pipeline.create(options);
 
@@ -45,8 +44,10 @@ public class ExamScoreProducer implements PipelineRunner {
 
         PCollection<ExamScore> inputScore = pipeline
                 .apply(sequence).apply(ParDo.of(new RandomScoreGeneratorFn(Subject.mathematics)));
-        PCollection<KV<String, String>> JsonDataPc = inputScore.setCoder(SerializableCoder.of(ExamScore.class))
-                .apply(ParDo.of(new ConvertExamScoreToJson()));
+        //inputScore.apply(ParDo.of(new LogOutput<>("ExamScoreData")));
+
+        PCollection<KV<String, String>> JsonDataPc = inputScore.apply(ParDo.of(new ConvertExamScoreToJson()));
+        //JsonDataPc.apply(ParDo.of(new LogOutput<>("ExamScoreJSON")));
 
         KafkaIO.Write<String, String> kafkaIo = KafkaIO.<String, String>write()
                 .withBootstrapServers(options.getKafkaHost())
@@ -56,13 +57,12 @@ public class ExamScoreProducer implements PipelineRunner {
                 .withProducerConfigUpdates(ImmutableMap.of("group.id", "beam_score_1"));
         JsonDataPc.apply(kafkaIo);
 
-        JsonDataPc.apply(ParDo.of(new LogOutput<>("发送成绩")));
         pipeline.run().waitUntilFinish();
     }
 
     private static class ConvertExamScoreToJson extends DoFn<ExamScore, KV<String, String>> {
         @ProcessElement
-        public void processElement(@DoFn.Element ExamScore element, OutputReceiver<KV<String, String>> receiver) throws JsonProcessingException {
+        public void process(@Element ExamScore element, OutputReceiver<KV<String, String>> receiver) throws JsonProcessingException {
             ObjectMapper objectMapper = new ObjectMapper();
             receiver.output(KV.of(element.getStudentCode() + element.getSubject().getValue(),
                     objectMapper.writeValueAsString(element)));
