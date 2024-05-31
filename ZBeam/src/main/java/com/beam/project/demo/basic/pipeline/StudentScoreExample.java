@@ -17,6 +17,8 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.commons.lang3.RandomUtils;
 import org.joda.time.Duration;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 public class StudentScoreExample {
@@ -96,7 +98,7 @@ public class StudentScoreExample {
         PCollection<ExamScore> mainSubjectScores = distinctScores.apply(ParDo.of(new DoFn<ExamScore, ExamScore>() {
             @ProcessElement
             public void process(@Element ExamScore score, OutputReceiver<ExamScore> receiver) throws CloneNotSupportedException {
-                if ("physics".equals(score.getSubject())) {
+                if (Subject.physics == score.getSubject()) {
                     return;
                 }
                 ExamScore scoreNew = score.clone();
@@ -126,15 +128,15 @@ public class StudentScoreExample {
                                 score.setSchoolCode(keys[0]);
                                 score.setClassCode(keys[1]);
                                 score.setSubject(Subject.fromCode(keys[2]));
-                                score.setScore(0.00d);
+                                score.setScore(BigDecimal.ZERO);
                                 int count = 0;
                                 for (ExamScore studentScore : studentScores) {
                                     score.setSchoolName(studentScore.getSchoolName());
-                                    score.setScore(score.getScore() + studentScore.getScore());
+                                    score.setScore(score.getScore().add(studentScore.getScore()));
                                     count++;
                                 }
                                 if (count > 0) {
-                                    score.setScore(score.getScore() / count);
+                                    score.setScore(score.getScore().divide(BigDecimal.valueOf(count), RoundingMode.UP));
                                 }
                                 receiver.output(score);
                             }
@@ -164,14 +166,14 @@ public class StudentScoreExample {
                         ExamScore score = null;
                         try {
                             score = studentScores.get(0).clone();
-                            score.setScore(0.0d);
+                            score.setScore(BigDecimal.ZERO);
                             for (ExamScore studentScore : studentScores) {
-                                score.setScore(score.getScore() + studentScore.getScore());
+                                score.setScore(score.getScore().add(studentScore.getScore()));
                             }
                         } catch (CloneNotSupportedException e) {
                             throw new RuntimeException(e);
                         }
-                        score.setScore(score.getScore() / studentScores.size());
+                        score.setScore(score.getScore().divide(BigDecimal.valueOf(studentScores.size()), RoundingMode.UP));
                         return score;
                     }
                 })).apply(Values.<ExamScore>create());
@@ -190,7 +192,7 @@ public class StudentScoreExample {
             score.setClassCode(CLASS_CODE[RandomUtils.nextInt(0, 5)]);
             score.setSubject(Subject.fromCode(SUBJECT_CODE[RandomUtils.nextInt(0, 3)]));
             score.setStudentCode(STUDENT_CODE[RandomUtils.nextInt(0, 39)]);
-            score.setScore(Double.valueOf(RandomUtils.nextInt(65, 100)));
+            score.setScore(BigDecimal.valueOf(RandomUtils.nextInt(65, 100)));
             scores.add(score);
         }
         return scores;
@@ -199,7 +201,7 @@ public class StudentScoreExample {
 
     private static List<ExamScore> getFixedStudentScores() {
         List<ExamScore> scores = Lists.newArrayList();
-        Long dataId = 1l;
+        Long dataId = 1L;
         for (String school : SCHOOL_CODE) {
             for (String classes : CLASS_CODE_FIXED) {
                 for (String subject : SUBJECT_CODE) {
@@ -210,8 +212,8 @@ public class StudentScoreExample {
                         score.setClassCode(classes);
                         score.setSubject(Subject.fromCode(subject));
                         score.setStudentCode(student);
-                        //score.setScore(Double.valueOf(RandomUtils.nextInt(65, 100)));
-                        score.setScore(Double.valueOf(80));
+                        //score.setScore(BigDecimal.valueOf(RandomUtils.nextInt(65, 100)));
+                        score.setScore(BigDecimal.valueOf(80));
                         scores.add(score);
                     }
                 }

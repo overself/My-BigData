@@ -12,13 +12,13 @@ public class ExamScorePipeline {
 
     public static void main(String[] args) {
         KafkaOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(KafkaOptions.class);
-        options.setKafkaHost("data-master01:9092,data-worker01:9092,data-worker02:9092");
         /*
          * Kafka producer which sends messages (works in background thread)
          */
         Duration windowSize = Duration.standardSeconds(30);
-        Instant nextWindowStart =new Instant(Instant.now().getMillis() + windowSize.getMillis()
-                                - Instant.now().plus(windowSize).getMillis() % windowSize.getMillis());
+        Instant nowInstant = Instant.now();
+        Instant nextWindowStart = new Instant(nowInstant.getMillis() + windowSize.getMillis()
+                - nowInstant.plus(windowSize).getMillis() % windowSize.getMillis());
         ExamScoreProducer producer = new ExamScoreProducer(options);
         Timer timer = new Timer();
         TimerTask task = new TimerTask() {
@@ -27,7 +27,7 @@ public class ExamScorePipeline {
                 producer.runPipeline();
             }
         };
-        timer.schedule(task,nextWindowStart.toDate());
+        timer.schedule(task, nextWindowStart.toDate());
 
         /*
          * Kafka consumer which reads messages

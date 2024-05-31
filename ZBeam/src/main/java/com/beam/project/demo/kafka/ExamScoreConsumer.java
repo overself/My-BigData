@@ -4,11 +4,12 @@ import avro.shaded.com.google.common.collect.ImmutableMap;
 import com.beam.project.common.KafkaOptions;
 import com.beam.project.common.LogOutput;
 import com.beam.project.demo.bean.ExamScore;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.kafka.KafkaIO;
-import org.apache.beam.sdk.io.kafka.KafkaRecord;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.ParDo;
@@ -38,41 +39,44 @@ public class ExamScoreConsumer {
                         .withKeyDeserializer(StringDeserializer.class)
                         .withValueDeserializer(StringDeserializer.class)
                         .withConsumerConfigUpdates(ImmutableMap.of("group.id", "beam_score_1"))
+                        //.withMaxNumRecords(100)
                         .withReadCommitted().withoutMetadata());
+        kafkaMessage.apply(ParDo.of(new LogOutput<>("接收到消息")));
 
         // Create fixed window for the length of the game round
-        Window<KV<String, String>> window = Window.into(FixedWindows.of(Duration.standardSeconds(5)));
-        Trigger trigger = AfterProcessingTime.pastFirstElementInPane()
-                .plusDelayOf(Duration.standardSeconds(4));
+        Window<KV<String, String>> window = Window.into(FixedWindows.of(Duration.standardSeconds(KafkaOptions.WINDOW_TIME)));
+        Trigger trigger = AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(10));
 
         PCollection<KV<String, String>> records = kafkaMessage.apply(window.triggering(Repeatedly.forever(trigger))
-                .withAllowedLateness(Duration.standardSeconds(2))
+                .withAllowedLateness(Duration.standardSeconds(1))
                 .accumulatingFiredPanes());
-        records.apply(ParDo.of(new LogOutput<>("接收records")));
+        kafkaMessage.apply(ParDo.of(new LogOutput<>("Window消息")));
 
         //PCollection<ExamScore> scorePc = records.apply(ParDo.of(new ConvertExamScoreDoFn()));
-        //PCollection<ExamScore> scorePc = records.apply(MapElements.via(new ConvertExamScoreFunction()));
+        PCollection<ExamScore> scorePc = records.apply(MapElements.via(new ConvertExamScoreFunction()));
+        scorePc.apply(ParDo.of(new LogOutput<>("转换至成绩")));
 
-        //scorePc.apply(ParDo.of(new LogOutput<>("接收成绩")));
         pipeline.run().waitUntilFinish();
 
     }
 
     private static class ConvertExamScoreDoFn extends DoFn<KV<String, String>, ExamScore> {
+        @SneakyThrows
         @ProcessElement
         public void processElement(ProcessContext context) {
             KV<String, String> input = context.element();
             ObjectMapper objectMapper = new ObjectMapper();
-            ExamScore examScore = objectMapper.convertValue(input.getValue(), ExamScore.class);
+            ExamScore examScore = objectMapper.readValue(input.getValue(), new TypeReference<ExamScore>() {});
             context.output(examScore);
         }
     }
 
     private static class ConvertExamScoreFunction extends SimpleFunction<KV<String, String>, ExamScore> {
+        @SneakyThrows
         @Override
         public ExamScore apply(KV<String, String> input) {
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.convertValue(input.getValue(), ExamScore.class);
+            return objectMapper.readValue(input.getValue(), new TypeReference<ExamScore>() {});
         }
     }
 }

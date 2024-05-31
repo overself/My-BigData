@@ -4,6 +4,7 @@ import lombok.Data;
 import org.joda.time.Instant;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
@@ -21,7 +22,7 @@ public class ExamScore implements Serializable, Cloneable {
 
     private Subject subject;
 
-    private Double score;
+    private BigDecimal score;
 
     private Date examTime;
 
