@@ -28,6 +28,11 @@ public class CalcSchoolSubjectAverageTransform extends PTransform<PCollection<Ex
             @ProcessElement
             public void processElement(@Element KV<String, Iterable<ExamScore>> groupSubject, OutputReceiver<ExamScore> receiver) {
                 List<ExamScore> examScoreList = Lists.newArrayList(groupSubject.getValue());
+                String schoolSubjectGroupKey = groupSubject.getKey();
+                if (examScoreList == null || examScoreList.size() == 0) {
+                    log.warn("学校科目分组[{}]的数据集为空", schoolSubjectGroupKey);
+                    return;
+                }
                 ExamScore score = examScoreList.get(0).clone();
                 score.setScore(BigDecimal.ZERO);
                 score.setClassCode(null);

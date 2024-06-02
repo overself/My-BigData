@@ -1,8 +1,6 @@
 package com.beam.project.demo.stream;
 
 import com.beam.project.common.KafkaOptions;
-import com.beam.project.demo.kafka.ExamScoreConsumer;
-import com.beam.project.demo.kafka.ExamScoreProducer;
 import org.apache.beam.runners.flink.FlinkRunner;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.joda.time.Duration;

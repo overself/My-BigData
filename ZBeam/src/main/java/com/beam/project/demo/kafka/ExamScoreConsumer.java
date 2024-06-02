@@ -1,12 +1,12 @@
 package com.beam.project.demo.kafka;
 
-import avro.shaded.com.google.common.collect.ImmutableMap;
 import com.beam.project.common.KafkaOptions;
 import com.beam.project.common.LogOutput;
 import com.beam.project.common.PipelineRunner;
 import com.beam.project.demo.bean.ExamScore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.sdk.Pipeline;

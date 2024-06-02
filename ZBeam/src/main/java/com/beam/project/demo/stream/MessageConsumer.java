@@ -1,6 +1,5 @@
 package com.beam.project.demo.stream;
 
-import avro.shaded.com.google.common.collect.ImmutableMap;
 import com.beam.project.common.KafkaOptions;
 import com.beam.project.common.LogOutput;
 import com.beam.project.common.PipelineRunner;
@@ -10,6 +9,7 @@ import com.beam.project.demo.bean.SchoolClass;
 import com.beam.project.demo.stream.transform.CalcClassSubjectAverageTransform;
 import com.beam.project.demo.stream.transform.CalcSchoolSubjectAverageTransform;
 import com.beam.project.demo.stream.transform.SchoolClassDistinctTransform;
+import com.google.common.collect.ImmutableMap;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.coders.SerializableCoder;
@@ -47,9 +47,14 @@ public class MessageConsumer implements PipelineRunner {
         //kafkaMessage.apply(ParDo.of(new LogOutput<>("原始消息")));
 
         // Create fixed window for the length of the game round
-        // 处理触发条件：每4分钟，或者每3条数据
+        // 处理触发条件
+        Trigger trigger = AfterWatermark.pastEndOfWindow(); //OK
+//OK        Trigger defaultTrigger = DefaultTrigger.of();
+//NG        Trigger afterProcessing = AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(KafkaOptions.WINDOW_TIME * 2));
+//NG        Trigger afterWatermark = AfterWatermark.pastEndOfWindow().withEarlyFirings(AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(KafkaOptions.WINDOW_TIME * 2)))
+//                .withLateFirings(AfterPane.elementCountAtLeast(1));
+
         Window<KV<Long, String>> window = Window.into(FixedWindows.of(Duration.standardSeconds(KafkaOptions.WINDOW_TIME * 2)));
-        Trigger trigger = AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(KafkaOptions.WINDOW_TIME * 2));
         PCollection<KV<Long, String>> windowedRecords = kafkaMessage.apply("#ReceiveWindowedSchoolClass", window
                 .triggering(Repeatedly.forever(trigger))
                 .withAllowedLateness(Duration.standardSeconds(1))

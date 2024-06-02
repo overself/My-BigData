@@ -62,9 +62,9 @@ public class GeneratorScore {
     public static List<ExamScore> getSubjectScore(SchoolClass scClass) {
         List<ExamScore> examScores = Lists.newArrayList();
         // 随机测试：获取5到10人的各科成绩
-        int studentNums = RandomUtils.nextInt(5, 10);
+        //int studentNums = RandomUtils.nextInt(5, 10);
         // 固定测试
-        //int studentNums = 5;
+        int studentNums = 10;
         for (String subject : SUBJECT_CODE) {
             for (int index = 0; index < studentNums; index++) {
                 ExamScore score = new ExamScore();

@@ -1,11 +1,11 @@
 package com.beam.project.demo.stream;
 
-import avro.shaded.com.google.common.collect.ImmutableMap;
 import com.beam.project.common.KafkaOptions;
 import com.beam.project.common.PipelineRunner;
 import com.beam.project.core.convert.ObjectMapperJson;
 import com.beam.project.demo.bean.SchoolClass;
 import com.beam.project.demo.stream.transform.GeneratorSchoolClassDoFn;
+import com.google.common.collect.ImmutableMap;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.GenerateSequence;

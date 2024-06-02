@@ -9,7 +9,6 @@ import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 @Slf4j
@@ -27,8 +26,12 @@ public class CalcClassSubjectAverageTransform extends PTransform<PCollection<Exa
             @SneakyThrows
             @ProcessElement
             public void processElement(@Element KV<String, Iterable<ExamScore>> groupSubject, OutputReceiver<ExamScore> receiver) {
-                //String classSubjectGroup = groupSubject.getKey();
+                String classSubjectGroupKey = groupSubject.getKey();
                 List<ExamScore> examScoreList = Lists.newArrayList(groupSubject.getValue());
+                if (examScoreList == null || examScoreList.size() == 0) {
+                    log.warn("班级科目分组[{}]的数据集为空", classSubjectGroupKey);
+                    return;
+                }
                 ExamScore score = examScoreList.get(0).clone();
                 score.setScore(BigDecimal.ZERO);
                 score.setStudentCode(null);
