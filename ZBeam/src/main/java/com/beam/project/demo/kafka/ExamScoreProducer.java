@@ -9,6 +9,7 @@ import com.beam.project.demo.kafka.transform.RandomScoreGeneratorFn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.GenerateSequence;
 import org.apache.beam.sdk.io.kafka.KafkaIO;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -28,7 +29,7 @@ public class ExamScoreProducer implements PipelineRunner {
     }
 
     @Override
-    public void runPipeline() {
+    public PipelineResult.State runPipeline() {
 
         Pipeline pipeline = Pipeline.create(options);
 
@@ -50,13 +51,13 @@ public class ExamScoreProducer implements PipelineRunner {
                 .withValueSerializer(StringSerializer.class)
                 .withProducerConfigUpdates(ImmutableMap.of("group.id", "beam_score_1"));
         JsonDataPc.apply(kafkaIo);
-        pipeline.run().waitUntilFinish();
+        return pipeline.run().waitUntilFinish();
     }
 
     private static class ConvertExamScoreToJson extends DoFn<ExamScore, KV<String, String>> {
         @SneakyThrows
         @ProcessElement
-        public void process(@Element ExamScore element, OutputReceiver<KV<String, String>> receiver){
+        public void process(@Element ExamScore element, OutputReceiver<KV<String, String>> receiver) {
             ObjectMapper objectMapper = new ObjectMapper();
             receiver.output(KV.of(element.getStudentCode() + element.getSubject().getValue(),
                     objectMapper.writeValueAsString(element)));

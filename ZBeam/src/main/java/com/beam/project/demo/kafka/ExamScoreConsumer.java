@@ -3,12 +3,14 @@ package com.beam.project.demo.kafka;
 import avro.shaded.com.google.common.collect.ImmutableMap;
 import com.beam.project.common.KafkaOptions;
 import com.beam.project.common.LogOutput;
+import com.beam.project.common.PipelineRunner;
 import com.beam.project.demo.bean.ExamScore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.kafka.KafkaIO;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.MapElements;
@@ -21,7 +23,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.joda.time.Duration;
 
 @Slf4j
-public class ExamScoreConsumer {
+public class ExamScoreConsumer implements PipelineRunner {
 
     private final KafkaOptions options;
 
@@ -29,7 +31,7 @@ public class ExamScoreConsumer {
         this.options = options;
     }
 
-    public void run() {
+    public PipelineResult.State runPipeline() {
 
         Pipeline pipeline = Pipeline.create(options);
         PCollection<KV<String, String>> kafkaMessage = pipeline.apply("ReadFromKafka",
@@ -56,8 +58,7 @@ public class ExamScoreConsumer {
         PCollection<ExamScore> scorePc = records.apply(MapElements.via(new ConvertExamScoreFunction()));
         scorePc.apply(ParDo.of(new LogOutput<>("转换至成绩")));
 
-        pipeline.run().waitUntilFinish();
-
+        return pipeline.run().waitUntilFinish();
     }
 
     private static class ConvertExamScoreDoFn extends DoFn<KV<String, String>, ExamScore> {
@@ -66,7 +67,8 @@ public class ExamScoreConsumer {
         public void processElement(ProcessContext context) {
             KV<String, String> input = context.element();
             ObjectMapper objectMapper = new ObjectMapper();
-            ExamScore examScore = objectMapper.readValue(input.getValue(), new TypeReference<ExamScore>() {});
+            ExamScore examScore = objectMapper.readValue(input.getValue(), new TypeReference<ExamScore>() {
+            });
             context.output(examScore);
         }
     }
@@ -76,7 +78,8 @@ public class ExamScoreConsumer {
         @Override
         public ExamScore apply(KV<String, String> input) {
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(input.getValue(), new TypeReference<ExamScore>() {});
+            return objectMapper.readValue(input.getValue(), new TypeReference<ExamScore>() {
+            });
         }
     }
 }
