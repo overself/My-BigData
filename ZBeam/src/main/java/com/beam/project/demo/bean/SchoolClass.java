@@ -42,4 +42,10 @@ public class SchoolClass implements Serializable, Cloneable {
     public int hashCode() {
         return Objects.hash(schoolCode, classCode);
     }
+
+    @Override
+    public String toString() {
+        return "SchoolClass[" + "school='" + schoolCode + '\'' +
+                ", class='" + classCode + '\'' + ']';
+    }
 }

@@ -14,12 +14,12 @@ public class ScoreProcessPipeline {
     public static void main(String[] args) {
 
         KafkaOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(KafkaOptions.class);
-        options.setTopic("ScoreProcess");
+        options.setTopic("SchoolClassTopic");
         options.setRunner(FlinkRunner.class);
         /*
          * Kafka producer which sends messages (works in background thread)
          */
-        Duration windowSize = Duration.standardSeconds(KafkaOptions.WINDOW_TIME);
+/*        Duration windowSize = Duration.standardSeconds(KafkaOptions.WINDOW_TIME);
         Instant nowInstant = Instant.now();
         Instant nextWindowStart = new Instant(nowInstant.getMillis() + windowSize.getMillis()
                 - nowInstant.plus(windowSize).getMillis() % windowSize.getMillis());
@@ -31,7 +31,7 @@ public class ScoreProcessPipeline {
                 producer.runPipeline();
             }
         };
-        timer.schedule(task, nextWindowStart.toDate());
+        timer.schedule(task, nextWindowStart.toDate());*/
 
         /*
          * Kafka consumer which reads messages
