@@ -13,8 +13,8 @@ public class LogOutput<T> extends DoFn<T, T> {
     }
 
     @ProcessElement
-    public void processElement(@Element T Data, OutputReceiver<T> receiver) throws Exception {
-        log.info("{}: {}", prefix, Data);
+    public void processElement(@Element T Data, ProcessContext context, OutputReceiver<T> receiver) throws Exception {
+        log.info("pane:{},timestamp:{}=>{}: {}", context.pane().getNonSpeculativeIndex(), context.timestamp(), prefix, Data);
         receiver.output(Data);
     }
 
