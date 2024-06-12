@@ -79,7 +79,7 @@ public class MessageConsumer implements PipelineRunner {
         classAveragePC.apply(ParDo.of(new LogOutput<>("计算班级各科")));
 
         //按照学科统计学校的成绩平均分，分组Key：SCHOOL && SUBJECT ->SCHOOL、SUBJECT、AVG(SCORE)
-        PCollection<ExamScore> schoolAveragePC = classSubjectScores.apply(new CalcSchoolSubjectAverageTransform());
+        PCollection<ExamScore> schoolAveragePC = classAveragePC.apply(new CalcSchoolSubjectAverageTransform());
         schoolAveragePC.apply(ParDo.of(new LogOutput<>("计算学校各科")));
 
         return pipeline.run().waitUntilFinish();
