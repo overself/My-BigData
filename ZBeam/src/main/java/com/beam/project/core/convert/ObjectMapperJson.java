@@ -3,14 +3,16 @@ package com.beam.project.core.convert;
 import com.beam.project.common.SnowFlakeUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.SneakyThrows;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.SimpleFunction;
 import org.apache.beam.sdk.values.KV;
+import org.joda.time.Instant;
 
 public class ObjectMapperJson {
 
-    static ObjectMapper objectMapper = new ObjectMapper();
+    static CustomObjectMapper objectMapper = new CustomObjectMapper();
 
     public static class WithKeyDataStingConvertDoFn<T> extends DoFn<T, KV<Long, String>> {
 
