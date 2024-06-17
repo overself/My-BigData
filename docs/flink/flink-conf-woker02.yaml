@@ -68,7 +68,7 @@ jobmanager.memory.process.size: 1024m
 
 #HWJ
 #taskmanager.bind-host: localhost
-taskmanager.bind-host: data-worker01
+taskmanager.bind-host: data-worker02
 
 # The address of the host on which the TaskManager runs and can be reached by the JobManager and
 # other TaskManagers. If not specified, the TaskManager will try different strategies to identify
@@ -82,7 +82,7 @@ taskmanager.bind-host: data-worker01
 
 #HWJ
 #taskmanager.host: localhost
-taskmanager.host: data-worker01
+taskmanager.host: data-worker02
 
 # The total process memory size for the TaskManager.
 #
@@ -97,7 +97,7 @@ taskmanager.memory.process.size: 2048m
 
 # The number of task slots that each TaskManager offers. Each slot runs one parallel pipeline.
 
-taskmanager.numberOfTaskSlots: 2
+taskmanager.numberOfTaskSlots: 3
 
 # The parallelism used for programs that did not specify and other parallelism.
 
