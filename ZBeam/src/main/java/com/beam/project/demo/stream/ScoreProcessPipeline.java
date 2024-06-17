@@ -3,12 +3,11 @@ package com.beam.project.demo.stream;
 import com.beam.project.common.KafkaOptions;
 import org.apache.beam.runners.flink.FlinkRunner;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.joda.time.Duration;
-import org.joda.time.Instant;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
+/**
+ * com.beam.project.demo.stream.ScoreProcessPipeline
+ * --runner=FlinkRunner
+ */
 public class ScoreProcessPipeline {
 
     public static void main(String[] args) {
