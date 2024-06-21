@@ -8,21 +8,20 @@ import com.beam.project.demo.bean.ExamScore;
 import com.beam.project.demo.bean.SchoolClass;
 import com.beam.project.demo.stream.transform.CalcClassSubjectAverageTransform;
 import com.beam.project.demo.stream.transform.CalcSchoolSubjectAverageTransform;
+import com.beam.project.demo.stream.transform.ReadSubjectScoreDoFn;
 import com.beam.project.demo.stream.transform.SchoolClassDistinctTransform;
 import com.google.common.collect.ImmutableMap;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.coders.SerializableCoder;
 import org.apache.beam.sdk.io.kafka.KafkaIO;
-import org.apache.beam.sdk.transforms.*;
+import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.windowing.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.joda.time.Duration;
-
-import java.util.List;
 
 public class MessageConsumer implements PipelineRunner {
 
@@ -86,12 +85,5 @@ public class MessageConsumer implements PipelineRunner {
     }
 
 
-    private static class ReadSubjectScoreDoFn extends DoFn<SchoolClass, ExamScore> {
-        @ProcessElement
-        public void processElement(ProcessContext c) {
-            SchoolClass schoolClass = c.element();
-            List<ExamScore> scores = GeneratorScore.getSubjectScore(schoolClass);
-            scores.forEach(score -> c.output(score));
-        }
-    }
+
 }
