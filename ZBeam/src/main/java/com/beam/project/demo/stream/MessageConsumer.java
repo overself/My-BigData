@@ -33,6 +33,7 @@ public class MessageConsumer implements PipelineRunner {
 
     @Override
     public PipelineResult.State runPipeline() {
+        options.setParallelism(1);
         Pipeline pipeline = Pipeline.create(options);
 
         PCollection<KV<Long, String>> kafkaMessage = pipeline.apply("#ConsumerSchoolClassMsg",
@@ -43,7 +44,7 @@ public class MessageConsumer implements PipelineRunner {
                         .withValueDeserializer(StringDeserializer.class)
                         .withConsumerConfigUpdates(ImmutableMap.of("group.id", "beam_process_1"))
                         .withReadCommitted().withoutMetadata());
-        kafkaMessage.apply(ParDo.of(new LogOutput<>("原消息")));
+        kafkaMessage.apply("#Log001", ParDo.of(new LogOutput<>("原消息")));
 
         // Create fixed window for the length of the game round
         // 处理触发条件
@@ -55,7 +56,7 @@ public class MessageConsumer implements PipelineRunner {
 
         Window<KV<Long, String>> window = Window.into(FixedWindows.of(Duration.standardMinutes(1)));
         PCollection<KV<Long, String>> windowedRecords = kafkaMessage.apply("#ReceiveWindowedSchoolClass", window
-                .triggering(Repeatedly.forever(trigger))
+                .triggering(trigger)
                 //.withAllowedLateness(Duration.standardSeconds(1))
                 .withAllowedLateness(Duration.ZERO)
                 .discardingFiredPanes());
@@ -63,11 +64,11 @@ public class MessageConsumer implements PipelineRunner {
 
         //PCollection<SchoolClass> scorePc = windowedRecords.apply(MapElements.via(new ObjectMapperJson.ConvertToRecodeFunction<>(SchoolClass.class))).setCoder(SerializableCoder.of(SchoolClass.class));
         PCollection<SchoolClass> schoolClassRecords = windowedRecords.apply(ParDo.of(new ObjectMapperJson.ConvertToRecodeDoFn<>(SchoolClass.class))).setCoder(SerializableCoder.of(SchoolClass.class));
-        //schoolClassRecords.apply(ParDo.of(new LogOutput<>("转班级")));
+        schoolClassRecords.apply(ParDo.of(new LogOutput<>("转班级")));
 
         //对每个时间窗口的数据进行GroupByKey分组去重，去重key：SCHOOL && CLASS
         PCollection<SchoolClass> distinctSchoolClasses = schoolClassRecords.apply(new SchoolClassDistinctTransform());
-        distinctSchoolClasses.apply(ParDo.of(new LogOutput<>("去重后")));
+        distinctSchoolClasses.apply("#Log002", ParDo.of(new LogOutput<>("去重后")));
 
         //获取指定班级全部学生成绩(2科*10人)，条件：SCHOOL && CLASS -> SCHOOL、CLASS、SUBJECT、STUDENT、SCORE
         PCollection<ExamScore> classSubjectScores = distinctSchoolClasses.apply(ParDo.of(new ReadSubjectScoreDoFn()));
@@ -75,15 +76,14 @@ public class MessageConsumer implements PipelineRunner {
 
         //按照学科统计班级的各科成绩平均分，分组Key：SCHOOL && CLASS && SUBJECT ->SCHOOL、CLASS、SUBJECT、AVG(SCORE)
         PCollection<ExamScore> classAveragePC = classSubjectScores.apply(new CalcClassSubjectAverageTransform());
-        classAveragePC.apply(ParDo.of(new LogOutput<>("计算班级各科")));
+        classAveragePC.apply("#Log003", ParDo.of(new LogOutput<>("计算班级各科")));
 
         //按照学科统计学校的成绩平均分，分组Key：SCHOOL && SUBJECT ->SCHOOL、SUBJECT、AVG(SCORE)
         PCollection<ExamScore> schoolAveragePC = classAveragePC.apply(new CalcSchoolSubjectAverageTransform());
-        schoolAveragePC.apply(ParDo.of(new LogOutput<>("计算学校各科")));
+        schoolAveragePC.apply("#Log004", ParDo.of(new LogOutput<>("计算学校各科")));
 
         return pipeline.run().waitUntilFinish();
     }
-
 
 
 }

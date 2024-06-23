@@ -22,7 +22,7 @@ public class CalcClassSubjectAverageTransform extends PTransform<PCollection<Exa
             }
         })).apply(GroupByKey.create());
 
-        return classSubjectGroup.apply("", ParDo.of(new DoFn<KV<String, Iterable<ExamScore>>, ExamScore>() {
+        return classSubjectGroup.apply("#ClassSubjectGroupSum", ParDo.of(new DoFn<KV<String, Iterable<ExamScore>>, ExamScore>() {
             @SneakyThrows
             @ProcessElement
             public void processElement(@Element KV<String, Iterable<ExamScore>> groupSubject, OutputReceiver<ExamScore> receiver) {

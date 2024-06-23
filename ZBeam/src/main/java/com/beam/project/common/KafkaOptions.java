@@ -1,10 +1,10 @@
 package com.beam.project.common;
 
+import org.apache.beam.runners.flink.FlinkPipelineOptions;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
-import org.apache.beam.sdk.options.PipelineOptions;
 
-public interface KafkaOptions extends PipelineOptions {
+public interface KafkaOptions extends FlinkPipelineOptions {
 
     /**
      * Playground's Kafka server
