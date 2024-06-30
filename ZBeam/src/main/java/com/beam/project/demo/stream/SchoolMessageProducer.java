@@ -72,7 +72,7 @@ public class SchoolMessageProducer {
         Producer<Long, String> producer = new KafkaProducer<>(this.props);
         long startTime = System.nanoTime();
         AtomicLong atomicLong = new AtomicLong(0);
-        for (long i = 1; i <= 30; i++) {
+        for (long i = 1; i <= 60; i++) {
             Long dataKey = SnowFlakeUtil.getSnowFlakeId();
             SchoolClass schoolClass = new SchoolClass();
             schoolClass.setSchoolCode("SS" + i % 5);
