@@ -3,6 +3,7 @@ package com.beam.project.common;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.windowing.BoundedWindow;
+import org.apache.beam.sdk.transforms.windowing.IntervalWindow;
 import org.apache.beam.sdk.transforms.windowing.PaneInfo;
 import org.joda.time.Instant;
 
@@ -17,8 +18,13 @@ public class LogOutput<T> extends DoFn<T, T> {
     }
 
     @ProcessElement
-    public void processElement(@Element T Data, ProcessContext context, BoundedWindow window, @Timestamp Instant timestamp, PaneInfo paneInfo, OutputReceiver<T> receiver) throws Exception {
-        log.info("pane:{},contextTimestamp:{},window:{},timestamp:{},paneInfo:{} =>{}: {}", context.pane(), context.timestamp(), window, timestamp, paneInfo, prefix, Data);
+    public void processElement(@Element T Data, ProcessContext context, OutputReceiver<T> receiver,
+                               BoundedWindow window, @Timestamp Instant timestamp, PaneInfo paneInfo) throws Exception {
+        if (window instanceof IntervalWindow) {
+            IntervalWindow intervalWindow = (IntervalWindow) window;
+            log.info("{}", intervalWindow);
+        }
+        log.info("pane:{},contextTimestamp:{},window:{} =>{}: {}", context.pane(), context.timestamp(), window, prefix, Data);
         receiver.output(Data);
     }
 

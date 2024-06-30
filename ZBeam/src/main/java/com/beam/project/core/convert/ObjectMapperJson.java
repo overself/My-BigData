@@ -1,14 +1,10 @@
 package com.beam.project.core.convert;
 
 import com.beam.project.common.SnowFlakeUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.SneakyThrows;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.SimpleFunction;
 import org.apache.beam.sdk.values.KV;
-import org.joda.time.Instant;
 
 public class ObjectMapperJson {
 
@@ -63,6 +59,22 @@ public class ObjectMapperJson {
         @Override
         public T apply(KV<Long, String> input) {
             return objectMapper.readValue(input.getValue(), clazz);
+        }
+    }
+
+    public static class StrToRecodeFunction<T> extends DoFn<String, T> {
+
+        final Class<T> clazz;
+
+        public StrToRecodeFunction(Class<T> clazz) {
+            this.clazz = clazz;
+        }
+
+        @SneakyThrows
+        @ProcessElement
+        public void processElement(ProcessContext context) {
+            String input = context.element();
+            context.output(objectMapper.readValue(input, clazz));
         }
     }
 

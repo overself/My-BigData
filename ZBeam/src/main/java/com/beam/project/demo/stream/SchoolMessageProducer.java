@@ -1,11 +1,10 @@
-package com.beam.project.demo.window;
+package com.beam.project.demo.stream;
 
 import com.beam.project.common.SnowFlakeUtil;
 import com.beam.project.core.convert.CustomObjectMapper;
 import com.beam.project.core.convert.ObjectMapperJson;
 import com.beam.project.demo.bean.SchoolClass;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -34,6 +33,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class SchoolMessageProducer {
+
+    public static void main(String[] args) throws Exception {
+        SchoolMessageProducer producer = new SchoolMessageProducer("data-master01:9092,data-worker01:9092,data-worker02:9092", "SchoolClassTopic");
+        producer.setTaskSend(false);
+        producer.doSendMessage();
+    }
+
 
     private final CustomObjectMapper objectMapper = new CustomObjectMapper();
 
@@ -66,11 +72,11 @@ public class SchoolMessageProducer {
         Producer<Long, String> producer = new KafkaProducer<>(this.props);
         long startTime = System.nanoTime();
         AtomicLong atomicLong = new AtomicLong(0);
-        for (long i = 0; i < 100000; i++) {
+        for (long i = 1; i <= 30; i++) {
             Long dataKey = SnowFlakeUtil.getSnowFlakeId();
             SchoolClass schoolClass = new SchoolClass();
-            schoolClass.setSchoolCode("SS" + i);
-            schoolClass.setClassCode("CC" + (i % 100));
+            schoolClass.setSchoolCode("SS" + i % 5);
+            schoolClass.setClassCode("CC" + (i % 5));
             schoolClass.setTimestamp(Instant.now());
             //schoolClass.setSchoolCode("S" + dataKey);
             //schoolClass.setClassCode("C" + (i % 4));
@@ -97,7 +103,7 @@ public class SchoolMessageProducer {
         sequence.withTimestampFn((Long n) -> new Instant(System.currentTimeMillis()));
         sequence.withMaxReadTime(Duration.standardMinutes(2));
 
-        PCollection<SchoolClass> input = pipeline.apply(sequence).apply(ParDo.of(new RandomGeneratorFn(new AtomicLong(0))));
+        PCollection<SchoolClass> input = pipeline.apply(sequence).apply(ParDo.of(new RandomGeneratorFn()));
         PCollection<KV<Long, String>> JsonDataPc = input.apply(ParDo.of(new ObjectMapperJson.WithKeyDataStingConvertDoFn<SchoolClass>()));
         KafkaIO.Write<Long, String> kafkaIo = KafkaIO.<Long, String>write()
                 .withBootstrapServers(props.getProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG))
@@ -111,11 +117,7 @@ public class SchoolMessageProducer {
 
     public static class RandomGeneratorFn extends DoFn<Long, SchoolClass> {
 
-        private AtomicLong atomicIncrement;
-
-        public RandomGeneratorFn(AtomicLong atomicLong) {
-            this.atomicIncrement = atomicLong;
-        }
+        static private final AtomicLong atomicIncrement = new AtomicLong(1);
 
         @ProcessElement
         public void processElement(ProcessContext c) {

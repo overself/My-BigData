@@ -3,10 +3,15 @@ package com.beam.project.demo.stream;
 import com.beam.project.common.KafkaOptions;
 import org.apache.beam.runners.flink.FlinkRunner;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.HeartbeatManagerOptions;
 
 /**
  * com.beam.project.demo.stream.ScoreProcessPipeline
  * --runner=FlinkRunner
+ * flink run -p 6 -c com.beam.project.demo.stream.ScoreProcessPipeline /data/beam/ZBeam-bundled-1.0-SNAPSHOT.jar --runner=FlinkRunner
  */
 public class ScoreProcessPipeline {
 

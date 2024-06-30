@@ -1,4 +1,4 @@
-package com.beam.project.demo.window.gloab;
+package com.beam.project.demo.window;
 
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
